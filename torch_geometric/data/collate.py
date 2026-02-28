@@ -111,7 +111,7 @@ def collate(
 
             # If parts of the data are already on GPU, make sure that auxiliary
             # data like `batch` or `ptr` are also created on GPU:
-            if isinstance(value, Tensor) and value.is_cuda:
+            if isinstance(value, Tensor) and value.is_musa:
                 device = value.device
 
             out_store[attr] = value

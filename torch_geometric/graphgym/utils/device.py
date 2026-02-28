@@ -19,7 +19,8 @@ def get_gpu_memory_map():
 
 def get_current_gpu_usage():
     """Get the current GPU memory usage."""
-    if cfg.gpu_mem and cfg.device != 'cpu' and torch.cuda.is_available():
+    if cfg.gpu_mem and cfg.device != 'cpu' and hasattr(torch, 'musa') and torch.musa.is_available():
+        # TODO fix the GPU memory usage for MUSA, currently it is not accurate and may cause OOM error.
         result = subprocess.check_output([
             'nvidia-smi', '--query-compute-apps=pid,used_memory',
             '--format=csv,nounits,noheader'
@@ -38,8 +39,8 @@ def get_current_gpu_usage():
 def auto_select_device():
     r"""Auto select device for the current experiment."""
     if cfg.accelerator == 'auto':
-        if torch.cuda.is_available():
-            cfg.accelerator = 'cuda'
+        if hasattr(torch, 'musa') and torch.musa.is_available():
+            cfg.accelerator = 'musa'
             cfg.devices = 1
         else:
             cfg.accelerator = 'cpu'

@@ -1171,13 +1171,13 @@ def cpu(tensor: EdgeIndex, *args: Any, **kwargs: Any) -> EdgeIndex:
     return apply_(tensor, Tensor.cpu, *args, **kwargs)
 
 
-@implements(Tensor.cuda)
-def cuda(  # pragma: no cover
+@implements(Tensor.musa)
+def musa(  # pragma: no cover
     tensor: EdgeIndex,
     *args: Any,
     **kwargs: Any,
 ) -> EdgeIndex:
-    return apply_(tensor, Tensor.cuda, *args, **kwargs)
+    return apply_(tensor, Tensor.musa, *args, **kwargs)
 
 
 @implements(Tensor.share_memory_)
@@ -1595,7 +1595,7 @@ class _TorchSPMM(torch.autograd.Function):
             assert input.is_sorted_by_col
             adj = input.to_sparse_csc(value).t()
 
-        if torch_geometric.typing.WITH_PT20 and not other.is_cuda:
+        if torch_geometric.typing.WITH_PT20 and not other.is_musa:
             return torch.sparse.mm(adj, other, reduce)
         else:  # pragma: no cover
             assert reduce == 'sum'
@@ -1698,7 +1698,7 @@ def _spmm(
                          f"'{cls_name}' to be sorted by colums")
 
     if (torch_geometric.typing.WITH_TORCH_SPARSE and not is_compiling()
-            and other.is_cuda):  # pragma: no cover
+            and other.is_musa):  # pragma: no cover
         return _torch_sparse_spmm(input, other, value, reduce, transpose)
 
     if value is not None and value.requires_grad:
@@ -1714,7 +1714,7 @@ def _spmm(
         count = input.get_indptr().diff()
         return out / count.clamp_(min=1).to(out.dtype).view(-1, 1)
 
-    if (torch_geometric.typing.WITH_PT20 and not other.is_cuda
+    if (torch_geometric.typing.WITH_PT20 and not other.is_musa
             and not other.requires_grad):
         return _TorchSPMM.apply(input, other, value, reduce, transpose)
 

@@ -241,7 +241,7 @@ def create_batchwise_out_aux_pairs(
 
         return topk_neighbors
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('musa' if hasattr(torch, 'musa') and torch.musa.is_available() else 'cpu')
     if isinstance(prime_indices, Tensor):
         prime_indices = prime_indices.cpu().numpy()
 
@@ -275,8 +275,8 @@ def create_batchwise_out_aux_pairs(
                 loader.append((cur_output_nodes[i], auxiliary_nodes))
             cur_output_nodes = []
 
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        if torch.musa.is_available():
+            torch.musa.empty_cache()
 
     return loader
 

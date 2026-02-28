@@ -12,12 +12,12 @@ Trace = namedtuple('Trace', ['path', 'leaf', 'module'])
 Measure = namedtuple('Measure', [
     'self_cpu_total',
     'cpu_total',
-    'self_cuda_total',
-    'cuda_total',
+    'self_musa_total',
+    'musa_total',
     'self_cpu_memory',
     'cpu_memory',
-    'self_cuda_memory',
-    'cuda_memory',
+    'self_musa_memory',
+    'musa_memory',
     'occurrences',
 ])
 
@@ -31,7 +31,7 @@ class Profiler:
         model (torch.nn.Module): The underlying model to be profiled.
         enabled (bool, optional): If set to :obj:`True`, turn on the profiler.
             (default: :obj:`False`)
-        use_cuda (bool, optional): Whether to profile CUDA execution.
+        use_musa (bool, optional): Whether to profile MUSA execution.
             (default: :obj:`False`)
         profile_memory (bool, optional): If set to :obj:`True`, also profile
             memory usage. (default: :obj:`False`)
@@ -42,13 +42,13 @@ class Profiler:
         self,
         model: torch.nn.Module,
         enabled: bool = True,
-        use_cuda: bool = False,
+        use_musa: bool = False,
         profile_memory: bool = False,
         paths: Optional[List[str]] = None,
     ):
         self._model = model
         self.enabled = enabled
-        self.use_cuda = use_cuda
+        self.use_musa = use_musa
         self.profile_memory = profile_memory
         self.paths = paths
 
@@ -113,8 +113,8 @@ class Profiler:
                         "Profiler requires at least torch 1.8.1")
 
                 activities = [torch.profiler.ProfilerActivity.CPU]
-                if self.use_cuda:
-                    activities.append(torch.profiler.ProfilerActivity.CUDA)
+                if self.use_musa:
+                    activities.append(torch.profiler.ProfilerActivity.MUSA)
                 with torch_profiler.profile(
                         activities=activities,
                         profile_memory=self.profile_memory,
@@ -149,7 +149,7 @@ def _layer_trace(
         trace_events: Any,
         show_events: bool = True,
         paths: List[str] = None,
-        use_cuda: bool = False,
+        use_musa: bool = False,
         profile_memory: bool = False,
         dt: Tuple[str, ...] = ('-', '-', '-', ' '),
 ) -> object:
@@ -165,7 +165,7 @@ def _layer_trace(
         paths (str, optional): Predefine path for fast loading. By default, it
             will not be used.
             (default: :obj:`False`)
-        use_cuda (bool, optional): Enables timing of CUDA events.
+        use_musa (bool, optional): Enables timing of MUSA events.
             (default: :obj:`False`)
         profile_memory (bool, optional): If True, also profile for the memory
             usage information.
@@ -200,11 +200,11 @@ def _layer_trace(
     tree_lines = _flatten_tree(tree)
 
     format_lines = []
-    has_self_cuda_total = False
+    has_self_musa_total = False
     has_self_cpu_memory = False
     has_cpu_memory = False
-    has_self_cuda_memory = False
-    has_cuda_memory = False
+    has_self_musa_memory = False
+    has_musa_memory = False
 
     raw_results = {}
     for idx, tree_line in enumerate(tree_lines):
@@ -222,21 +222,21 @@ def _layer_trace(
 
         format_lines.append([pre + name, *_format_measure_tuple(measures)])
         if measures:
-            has_self_cuda_total = (has_self_cuda_total
-                                   or measures.self_cuda_total is not None)
+            has_self_musa_total = (has_self_musa_total
+                                   or measures.self_musa_total is not None)
             has_self_cpu_memory = (has_self_cpu_memory
                                    or measures.self_cpu_memory is not None)
             has_cpu_memory = has_cpu_memory or measures.cpu_memory is not None
-            has_self_cuda_memory = (has_self_cuda_memory
-                                    or measures.self_cuda_memory is not None)
-            has_cuda_memory = (has_cuda_memory
-                               or measures.cuda_memory is not None)
+            has_self_musa_memory = (has_self_musa_memory
+                                    or measures.self_musa_memory is not None)
+            has_musa_memory = (has_musa_memory
+                               or measures.musa_memory is not None)
 
             raw_results[name] = [
                 measures.self_cpu_total, measures.cpu_total,
-                measures.self_cuda_total, measures.cuda_total,
+                measures.self_musa_total, measures.musa_total,
                 measures.self_cpu_memory, measures.cpu_memory,
-                measures.self_cuda_memory, measures.cuda_memory,
+                measures.self_musa_memory, measures.musa_memory,
                 measures.occurrences
             ]
 
@@ -245,12 +245,12 @@ def _layer_trace(
         "Module",
         "Self CPU total",
         "CPU total",
-        "Self CUDA total",
-        "CUDA total",
+        "Self MUSA total",
+        "MUSA total",
         "Self CPU Mem",
         "CPU Mem",
-        "Self CUDA Mem",
-        "CUDA Mem",
+        "Self MUSA Mem",
+        "MUSA Mem",
         "Number of Calls",
     )
 
@@ -264,14 +264,14 @@ def _layer_trace(
             keep_indexes.append(5)
         if has_cpu_memory:
             keep_indexes.append(6)
-    if use_cuda:
-        if has_self_cuda_total:
+    if use_musa:
+        if has_self_musa_total:
             keep_indexes.append(3)
         keep_indexes.append(4)
         if profile_memory:
-            if has_self_cuda_memory:
+            if has_self_musa_memory:
                 keep_indexes.append(7)
-            if has_cuda_memory:
+            if has_musa_memory:
                 keep_indexes.append(8)
 
     # the final columns to be shown
@@ -336,34 +336,34 @@ def _build_measure_tuple(events: List, occurrences: List) -> NamedTuple:
     has_cpu_memory = any(hasattr(e, "cpu_memory_usage") for e in events)
     if has_cpu_memory:
         cpu_memory = sum([getattr(e, "cpu_memory_usage", 0) for e in events])
-    self_cuda_memory = None
-    has_self_cuda_memory = any(
-        hasattr(e, "self_cuda_memory_usage") for e in events)
-    if has_self_cuda_memory:
-        self_cuda_memory = sum(
-            [getattr(e, "self_cuda_memory_usage", 0) for e in events])
-    cuda_memory = None
-    has_cuda_memory = any(hasattr(e, "cuda_memory_usage") for e in events)
-    if has_cuda_memory:
-        cuda_memory = sum([getattr(e, "cuda_memory_usage", 0) for e in events])
+    self_musa_memory = None
+    has_self_musa_memory = any(
+        hasattr(e, "self_musa_memory_usage") for e in events)
+    if has_self_musa_memory:
+        self_musa_memory = sum(
+            [getattr(e, "self_musa_memory_usage", 0) for e in events])
+    musa_memory = None
+    has_musa_memory = any(hasattr(e, "musa_memory_usage") for e in events)
+    if has_musa_memory:
+        musa_memory = sum([getattr(e, "musa_memory_usage", 0) for e in events])
 
-    # self CUDA time supported in torch >= 1.7
-    self_cuda_total = None
-    has_self_cuda_time = any(
-        hasattr(e, "self_cuda_time_total") for e in events)
-    if has_self_cuda_time:
-        self_cuda_total = sum(
-            [getattr(e, "self_cuda_time_total", 0) for e in events])
+    # self MUSA time supported in torch >= 1.7
+    self_musa_total = None
+    has_self_musa_time = any(
+        hasattr(e, "self_musa_time_total") for e in events)
+    if has_self_musa_time:
+        self_musa_total = sum(
+            [getattr(e, "self_musa_time_total", 0) for e in events])
 
     return Measure(
         self_cpu_total=sum([e.self_cpu_time_total for e in events]),
         cpu_total=sum([e.cpu_time_total for e in events]),
-        self_cuda_total=self_cuda_total,
-        cuda_total=sum([e.cuda_time_total for e in events]),
+        self_musa_total=self_musa_total,
+        musa_total=sum([e.musa_time_total for e in events]),
         self_cpu_memory=self_cpu_memory,
         cpu_memory=cpu_memory,
-        self_cuda_memory=self_cuda_memory,
-        cuda_memory=cuda_memory,
+        self_musa_memory=self_musa_memory,
+        musa_memory=musa_memory,
         occurrences=occurrences,
     )
 
@@ -371,28 +371,28 @@ def _build_measure_tuple(events: List, occurrences: List) -> NamedTuple:
 def _format_measure_tuple(measure: NamedTuple) -> NamedTuple:
     self_cpu_total = (format_time(measure.self_cpu_total) if measure else "")
     cpu_total = format_time(measure.cpu_total) if measure else ""
-    self_cuda_total = (format_time(measure.self_cuda_total) if measure
-                       and measure.self_cuda_total is not None else "")
-    cuda_total = format_time(measure.cuda_total) if measure else ""
+    self_musa_total = (format_time(measure.self_musa_total) if measure
+                       and measure.self_musa_total is not None else "")
+    musa_total = format_time(measure.musa_total) if measure else ""
     self_cpu_memory = (format_memory(measure.self_cpu_memory) if measure
                        and measure.self_cpu_memory is not None else "")
     cpu_memory = (format_memory(measure.cpu_memory)
                   if measure and measure.cpu_memory is not None else "")
-    self_cuda_memory = (format_memory(measure.self_cuda_memory) if measure
-                        and measure.self_cuda_memory is not None else "")
-    cuda_memory = (format_memory(measure.cuda_memory)
-                   if measure and measure.cuda_memory is not None else "")
+    self_musa_memory = (format_memory(measure.self_musa_memory) if measure
+                        and measure.self_musa_memory is not None else "")
+    musa_memory = (format_memory(measure.musa_memory)
+                   if measure and measure.musa_memory is not None else "")
     occurrences = str(measure.occurrences) if measure else ""
 
     return Measure(
         self_cpu_total=self_cpu_total,
         cpu_total=cpu_total,
-        self_cuda_total=self_cuda_total,
-        cuda_total=cuda_total,
+        self_musa_total=self_musa_total,
+        musa_total=musa_total,
         self_cpu_memory=self_cpu_memory,
         cpu_memory=cpu_memory,
-        self_cuda_memory=self_cuda_memory,
-        cuda_memory=cuda_memory,
+        self_musa_memory=self_musa_memory,
+        musa_memory=musa_memory,
         occurrences=occurrences,
     )
 

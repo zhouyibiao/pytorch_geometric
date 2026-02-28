@@ -88,10 +88,10 @@ if torch_geometric.typing.WITH_PT112:  # pragma: no cover
         # in case the input does not require gradients:
         if reduce in ['min', 'max', 'amin', 'amax']:
             if (not torch_geometric.typing.WITH_TORCH_SCATTER
-                    or is_compiling() or not src.is_cuda
+                    or is_compiling() or not src.is_musa
                     or not src.requires_grad):
 
-                if src.is_cuda and src.requires_grad and not is_compiling():
+                if src.is_musa and src.requires_grad and not is_compiling():
                     warnings.warn(f"The usage of `scatter(reduce='{reduce}')` "
                                   f"can be accelerated via the 'torch-scatter'"
                                   f" package, but it was not found")
@@ -107,9 +107,9 @@ if torch_geometric.typing.WITH_PT112:  # pragma: no cover
         # For "mul" reduction, we prefer `scatter_reduce_` on CPU:
         if reduce == 'mul':
             if (not torch_geometric.typing.WITH_TORCH_SCATTER
-                    or is_compiling() or not src.is_cuda):
+                    or is_compiling() or not src.is_musa):
 
-                if src.is_cuda and not is_compiling():
+                if src.is_musa and not is_compiling():
                     warnings.warn(f"The usage of `scatter(reduce='{reduce}')` "
                                   f"can be accelerated via the 'torch-scatter'"
                                   f" package, but it was not found")

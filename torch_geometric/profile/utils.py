@@ -75,7 +75,7 @@ def get_cpu_memory_from_gc() -> int:
     mem = 0
     for obj in gc.get_objects():
         try:
-            if isinstance(obj, Tensor) and not obj.is_cuda:
+            if isinstance(obj, Tensor) and not obj.is_musa:
                 mem += obj.numel() * obj.element_size()
         except Exception:
             pass

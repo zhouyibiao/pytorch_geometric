@@ -65,7 +65,7 @@ class WILLOWObjectClass(InMemoryDataset):
         device: Optional[str] = None,
     ) -> None:
         if device is None:
-            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            device = 'musa' if torch.musa.is_available() else 'cpu'
 
         assert category.lower() in self.categories
         self.category = category

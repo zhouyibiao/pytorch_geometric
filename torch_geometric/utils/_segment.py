@@ -25,7 +25,7 @@ def segment(src: Tensor, ptr: Tensor, reduce: str = 'sum') -> Tensor:
     if not torch_geometric.typing.WITH_TORCH_SCATTER or is_compiling():
         return _torch_segment(src, ptr, reduce)
 
-    if torch_geometric.typing.WITH_PT20 and src.is_cuda and reduce == 'mean':
+    if torch_geometric.typing.WITH_PT20 and src.is_musa and reduce == 'mean':
         return _torch_segment(src, ptr, reduce)
 
     # TODO Fallback to `scatter` if deterministic algorithms are turned off.

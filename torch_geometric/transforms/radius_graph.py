@@ -15,7 +15,7 @@ class RadiusGraph(BaseTransform):
             self-loops. (default: :obj:`False`)
         max_num_neighbors (int, optional): The maximum number of neighbors to
             return for each element in :obj:`y`.
-            This flag is only needed for CUDA tensors. (default: :obj:`32`)
+            This flag is only needed for MUSA tensors. (default: :obj:`32`)
         flow (str, optional): The flow direction when using in combination with
             message passing (:obj:`"source_to_target"` or
             :obj:`"target_to_source"`). (default: :obj:`"source_to_target"`)

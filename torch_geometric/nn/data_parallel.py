@@ -44,7 +44,7 @@ class DataParallel(torch.nn.DataParallel):
 
     Args:
         module (Module): Module to be parallelized.
-        device_ids (list of int or torch.device): CUDA devices.
+        device_ids (list of int or torch.device): MUSA devices.
             (default: all devices)
         output_device (int or torch.device): Device location of output.
             (default: :obj:`device_ids[0]`)
@@ -62,7 +62,7 @@ class DataParallel(torch.nn.DataParallel):
                       "Please consider switching to 'DistributedDataParallel' "
                       "for multi-GPU training.")
 
-        self.src_device = torch.device(f'cuda:{self.device_ids[0]}')
+        self.src_device = torch.device(f'musa:{self.device_ids[0]}')
         self.follow_batch = follow_batch or []
         self.exclude_keys = exclude_keys or []
 
@@ -107,6 +107,6 @@ class DataParallel(torch.nn.DataParallel):
             Batch.from_data_list(data_list[split[i]:split[i + 1]],
                                  follow_batch=self.follow_batch,
                                  exclude_keys=self.exclude_keys).to(
-                                     torch.device(f'cuda:{device_ids[i]}'))
+                                     torch.device(f'musa:{device_ids[i]}'))
             for i in range(len(split) - 1)
         ]

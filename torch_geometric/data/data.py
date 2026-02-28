@@ -366,14 +366,14 @@ class BaseData:
         """
         return self.apply(lambda x: x.cpu(), *args)
 
-    def cuda(self, device: Optional[Union[int, str]] = None, *args: str,
+    def musa(self, device: Optional[Union[int, str]] = None, *args: str,
              non_blocking: bool = False):
-        r"""Copies attributes to CUDA memory, either for all attributes or only
+        r"""Copies attributes to MUSA memory, either for all attributes or only
         the ones given in :obj:`*args`.
         """
-        # Some PyTorch tensor like objects require a default value for `cuda`:
-        device = 'cuda' if device is None else device
-        return self.apply(lambda x: x.cuda(device, non_blocking=non_blocking),
+        # Some PyTorch tensor like objects require a default value for `musa`:
+        device = 'musa' if device is None else device
+        return self.apply(lambda x: x.musa(device, non_blocking=non_blocking),
                           *args)
 
     def pin_memory(self, *args: str):
@@ -408,7 +408,7 @@ class BaseData:
         return self.apply_(
             lambda x: x.requires_grad_(requires_grad=requires_grad), *args)
 
-    def record_stream(self, stream: torch.cuda.Stream, *args: str):
+    def record_stream(self, stream: torch.musa.Stream, *args: str):
         r"""Ensures that the tensor memory is not reused for another tensor
         until all current work queued on :obj:`stream` has been completed,
         either for all attributes or only the ones given in :obj:`*args`.
@@ -416,13 +416,13 @@ class BaseData:
         return self.apply_(lambda x: x.record_stream(stream), *args)
 
     @property
-    def is_cuda(self) -> bool:
+    def is_musa(self) -> bool:
         r"""Returns :obj:`True` if any :class:`torch.Tensor` attribute is
         stored on the GPU, :obj:`False` otherwise.
         """
         for store in self.stores:
             for value in store.values():
-                if isinstance(value, Tensor) and value.is_cuda:
+                if isinstance(value, Tensor) and value.is_musa:
                     return True
         return False
 
@@ -496,7 +496,7 @@ class Data(BaseData, FeatureStore, GraphStore):
 
         # PyTorch tensor functionality:
         data = data.pin_memory()
-        data = data.to('cuda:0', non_blocking=True)
+        data = data.to('musa:0', non_blocking=True)
 
     Args:
         x (torch.Tensor, optional): Node feature matrix with shape

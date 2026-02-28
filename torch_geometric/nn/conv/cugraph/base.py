@@ -103,7 +103,7 @@ class CuGraphModule(torch.nn.Module):  # pragma: no cover
         """
         row, colptr, num_src_nodes = csc
 
-        if not row.is_cuda:
+        if not row.is_musa:
             raise RuntimeError(f"'{self.__class__.__name__}' requires GPU-"
                                f"based processing (got CPU tensor)")
 

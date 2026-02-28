@@ -280,22 +280,22 @@ class HeteroLinear(torch.nn.Module):
 
         MEASURE_ITER = 1 if 'pytest' in sys.modules else 3
 
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        if hasattr(torch, 'musa') and torch.musa.is_available():
+            torch.musa.synchronize()
         t = time.perf_counter()
         for _ in range(MEASURE_ITER):
             _ = self.forward_segmm(x, type_ptr)
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        if hasattr(torch, 'musa') and torch.musa.is_available():
+            torch.musa.synchronize()
         time_segmm = time.perf_counter() - t
 
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        if hasattr(torch, 'musa') and torch.musa.is_available():
+            torch.musa.synchronize()
         t = time.perf_counter()
         for _ in range(MEASURE_ITER):
             _ = self.forward_naive(x, type_ptr)
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        if hasattr(torch, 'musa') and torch.musa.is_available():
+            torch.musa.synchronize()
         time_naive = time.perf_counter() - t
 
         self._timing_cache[key] = (time_segmm, time_naive)

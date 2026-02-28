@@ -81,12 +81,12 @@ def onlyPython(*args: str) -> Callable:
     return decorator
 
 
-def onlyCUDA(func: Callable) -> Callable:
-    r"""A decorator to skip tests if CUDA is not found."""
+def onlyMUSA(func: Callable) -> Callable:
+    r"""A decorator to skip tests if MUSA is not found."""
     import pytest
     return pytest.mark.skipif(
-        not torch.cuda.is_available(),
-        reason="CUDA not available",
+        not torch.musa.is_available(),
+        reason="MUSA not available",
     )(func)
 
 
@@ -188,13 +188,13 @@ def withPackage(*args: str) -> Callable:
     return decorator
 
 
-def withCUDA(func: Callable) -> Callable:
-    r"""A decorator to test both on CPU and CUDA (if available)."""
+def withMUSA(func: Callable) -> Callable:
+    r"""A decorator to test both on CPU and MUSA (if available)."""
     import pytest
 
     devices = [pytest.param(torch.device('cpu'), id='cpu')]
-    if torch.cuda.is_available():
-        devices.append(pytest.param(torch.device('cuda:0'), id='cuda:0'))
+    if torch.musa.is_available():
+        devices.append(pytest.param(torch.device('musa:0'), id='musa:0'))
 
     # Additional devices can be registered through environment variables:
     device = os.getenv('TORCH_DEVICE')

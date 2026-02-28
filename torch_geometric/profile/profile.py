@@ -25,9 +25,9 @@ class GPUStats:
 
 
 @dataclass
-class CUDAStats(GPUStats):
-    nvidia_smi_free_cuda: float
-    nvidia_smi_used_cuda: float
+class MUSAStats(GPUStats):
+    nvidia_smi_free_musa: float
+    nvidia_smi_used_musa: float
 
 
 @dataclass
@@ -40,9 +40,9 @@ class GPUStatsSummary:
 
 
 @dataclass
-class CUDAStatsSummary(GPUStatsSummary):
-    min_nvidia_smi_free_cuda: float
-    max_nvidia_smi_used_cuda: float
+class MUSAStatsSummary(GPUStatsSummary):
+    min_nvidia_smi_free_musa: float
+    max_nvidia_smi_used_musa: float
 
 
 def profileit(device: str):  # pragma: no cover
@@ -50,15 +50,15 @@ def profileit(device: str):  # pragma: no cover
     training runtime and memory statistics of a specific model on a specific
     dataset.
     Returns a :obj:`GPUStats` if :obj:`device` is :obj:`xpu` or extended
-    object :obj:`CUDAStats`, if :obj:`device` is :obj:`cuda`.
+    object :obj:`MUSAStats`, if :obj:`device` is :obj:`musa`.
 
     Args:
         device (str): Target device for profiling. Options are:
-            :obj:`cuda` and obj:`xpu`.
+            :obj:`musa` and obj:`xpu`.
 
     .. code-block:: python
 
-        @profileit("cuda")
+        @profileit("musa")
         def train(model, optimizer, x, edge_index, y):
             optimizer.zero_grad()
             out = model(x, edge_index)
@@ -72,14 +72,14 @@ def profileit(device: str):  # pragma: no cover
     def decorator(func):
         def wrapper(
                 *args, **kwargs
-        ) -> Union[Tuple[Any, GPUStats], Tuple[Any, CUDAStats]]:
+        ) -> Union[Tuple[Any, GPUStats], Tuple[Any, MUSAStats]]:
             model = args[0]
             if not isinstance(model, torch.nn.Module):
                 raise AttributeError(
                     'First argument for profiling needs to be torch.nn.Module')
-            if device not in ['cuda', 'xpu']:
+            if device not in ['musa', 'xpu']:
                 raise AttributeError(
-                    "The profiling decorator supports only CUDA and "
+                    "The profiling decorator supports only MUSA and "
                     "XPU devices")
 
             device_id = None
@@ -96,11 +96,11 @@ def profileit(device: str):  # pragma: no cover
                     "The profiling decorator does not support profiling "
                     "on non GPU devices")
 
-            is_cuda = device == 'cuda'
-            torch_gpu = torch.cuda if is_cuda else torch.xpu
+            is_musa = device == 'musa'
+            torch_gpu = torch.musa if is_musa else torch.xpu
 
-            # `pytorch_memlab` supports only CUDA devices
-            if is_cuda:
+            # `pytorch_memlab` supports only MUSA devices
+            if is_musa:
                 from pytorch_memlab import LineProfiler
 
                 # Init `pytorch_memlab` for analyzing the model forward pass:
@@ -118,7 +118,7 @@ def profileit(device: str):  # pragma: no cover
             torch_gpu.synchronize()
             time = start.elapsed_time(end) / 1000
 
-            if is_cuda:
+            if is_musa:
                 # Get the global memory statistics collected
                 # by `pytorch_memlab`:
                 memlab = read_from_memlab(line_profiler)
@@ -126,11 +126,11 @@ def profileit(device: str):  # pragma: no cover
                 line_profiler.disable()
 
                 # Get additional information from `nvidia-smi`:
-                free_cuda, used_cuda = get_gpu_memory_from_nvidia_smi(
+                free_musa, used_musa = get_gpu_memory_from_nvidia_smi(
                     device=device_id)
 
-                stats = CUDAStats(time, max_allocated, max_reserved,
-                                  max_active, free_cuda, used_cuda)
+                stats = MUSAStats(time, max_allocated, max_reserved,
+                                  max_active, free_musa, used_musa)
                 return out, stats
             else:
                 stats = GPUStats(time, *get_gpu_memory_from_ipex(device_id))
@@ -168,14 +168,14 @@ class timeit(ContextDecorator):
         self.avg_time_divisor = avg_time_divisor
 
     def __enter__(self):
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        if torch.musa.is_available():
+            torch.musa.synchronize()
         self.t_start = time.time()
         return self
 
     def __exit__(self, *args):
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        if torch.musa.is_available():
+            torch.musa.synchronize()
         self.t_end = time.time()
         self.duration = self.t_end - self.t_start
         if self.avg_time_divisor > 1:
@@ -193,16 +193,16 @@ class timeit(ContextDecorator):
 
 
 def get_stats_summary(
-    stats_list: Union[List[GPUStats], List[CUDAStats]]
-) -> Union[GPUStatsSummary, CUDAStatsSummary]:  # pragma: no cover
+    stats_list: Union[List[GPUStats], List[MUSAStats]]
+) -> Union[GPUStatsSummary, MUSAStatsSummary]:  # pragma: no cover
     r"""Creates a summary of collected runtime and memory statistics.
     Returns a :obj:`GPUStatsSummary` if list of :obj:`GPUStats` was passed,
-    otherwise (list of :obj:`CUDAStats` was passed),
-    returns a :obj:`CUDAStatsSummary`.
+    otherwise (list of :obj:`MUSAStats` was passed),
+    returns a :obj:`MUSAStatsSummary`.
 
     Args:
-        stats_list (Union[List[GPUStats], List[CUDAStats]]): A list of
-            :obj:`GPUStats` or :obj:`CUDAStats` objects, as returned by
+        stats_list (Union[List[GPUStats], List[MUSAStats]]): A list of
+            :obj:`GPUStats` or :obj:`MUSAStats` objects, as returned by
             :meth:`~torch_geometric.profile.profileit`.
     """
     # calculate common statistics
@@ -213,13 +213,13 @@ def get_stats_summary(
         max_reserved_gpu=max([s.max_reserved_gpu for s in stats_list]),
         max_active_gpu=max([s.max_active_gpu for s in stats_list]))
 
-    if all(isinstance(s, CUDAStats) for s in stats_list):
-        return CUDAStatsSummary(
+    if all(isinstance(s, MUSAStats) for s in stats_list):
+        return MUSAStatsSummary(
             **kwargs,
-            min_nvidia_smi_free_cuda=min(
-                [s.nvidia_smi_free_cuda for s in stats_list]),
-            max_nvidia_smi_used_cuda=max(
-                [s.nvidia_smi_used_cuda for s in stats_list]),
+            min_nvidia_smi_free_musa=min(
+                [s.nvidia_smi_free_musa for s in stats_list]),
+            max_nvidia_smi_used_musa=max(
+                [s.nvidia_smi_used_musa for s in stats_list]),
         )
     else:
         return GPUStatsSummary(**kwargs)
@@ -231,7 +231,7 @@ def get_stats_summary(
 def read_from_memlab(line_profiler: Any) -> List[float]:  # pragma: no cover
     from pytorch_memlab.line_profiler.line_records import LineRecords
 
-    # See: https://pytorch.org/docs/stable/cuda.html#torch.cuda.memory_stats
+    # See: https://pytorch.org/docs/stable/musa.html#torch.musa.memory_stats
 
     track_stats = [  # Different statistic can be collected as needed.
         'allocated_bytes.all.peak',
@@ -253,8 +253,8 @@ def trace_handler(p):
 
 
 def print_time_total(p):
-    if torch.cuda.is_available():
-        profile_sort = 'self_cuda_time_total'
+    if torch.musa.is_available():
+        profile_sort = 'self_musa_time_total'
     else:
         profile_sort = 'self_cpu_time_total'
     output = p.key_averages().table(sort_by=profile_sort)
@@ -272,11 +272,11 @@ def rename_profile_file(*args):
 
 @contextmanager
 def torch_profile(export_chrome_trace=True, csv_data=None, write_csv=None):
-    use_cuda = torch.cuda.is_available()
+    use_musa = torch.musa.is_available()
 
     activities = [ProfilerActivity.CPU]
-    if use_cuda:
-        activities.append(ProfilerActivity.CUDA)
+    if use_musa:
+        activities.append(ProfilerActivity.MUSA)
 
     if export_chrome_trace:
         p_trace_handler = trace_handler
@@ -290,8 +290,8 @@ def torch_profile(export_chrome_trace=True, csv_data=None, write_csv=None):
         p.step()
 
     if csv_data is not None and write_csv == 'prof':
-        if use_cuda:
-            profile_sort = 'self_cuda_time_total'
+        if use_musa:
+            profile_sort = 'self_musa_time_total'
         else:
             profile_sort = 'self_cpu_time_total'
         events = EventList(
@@ -299,9 +299,9 @@ def torch_profile(export_chrome_trace=True, csv_data=None, write_csv=None):
                 p.key_averages(),
                 key=lambda evt: getattr(evt, profile_sort),
                 reverse=True,
-            ), use_cuda=use_cuda)
+            ), use_musa=use_musa)
 
-        save_profile_data(csv_data, events, use_cuda)
+        save_profile_data(csv_data, events, use_musa)
 
 
 @contextmanager
@@ -318,12 +318,12 @@ def format_prof_time(time):
     return round(time / 1e6, 3)
 
 
-def save_profile_data(csv_data, events, use_cuda):
+def save_profile_data(csv_data, events, use_musa):
     sum_self_cpu_time_total = sum(
         [event.self_cpu_time_total for event in events])
     sum_cpu_time_total = sum([event.self_cpu_time_total for event in events])
-    sum_self_cuda_time_total = sum(
-        [event.self_cuda_time_total for event in events]) if use_cuda else 0
+    sum_self_musa_time_total = sum(
+        [event.self_musa_time_total for event in events]) if use_musa else 0
 
     for e in events[:5]:  # Save top 5 most time consuming operations:
         csv_data['NAME'].append(e.key)
@@ -334,12 +334,12 @@ def save_profile_data(csv_data, events, use_cuda):
             round(e.cpu_time_total * 100.0 / sum_cpu_time_total, 3))
         csv_data['CPU TOTAL'].append(format_prof_time(e.cpu_time_total))
         csv_data['CPU TIME AVG'].append(format_prof_time(e.cpu_time_total))
-        if use_cuda:
-            csv_data['SELF CUDA %'].append(e.self_cuda_time_total * 100.0 /
-                                           sum_self_cuda_time_total)
-            csv_data['SELF CUDA'].append(
-                format_prof_time(e.self_cuda_time_total))
-            csv_data['CUDA TOTAL'].append(format_prof_time(e.cpu_time_total))
-            csv_data['CUDA TIME AVG'].append(format_prof_time(
+        if use_musa:
+            csv_data['SELF MUSA %'].append(e.self_musa_time_total * 100.0 /
+                                           sum_self_musa_time_total)
+            csv_data['SELF MUSA'].append(
+                format_prof_time(e.self_musa_time_total))
+            csv_data['MUSA TOTAL'].append(format_prof_time(e.cpu_time_total))
+            csv_data['MUSA TIME AVG'].append(format_prof_time(
                 e.cpu_time_total))
         csv_data['# OF CALLS'].append(e.count)

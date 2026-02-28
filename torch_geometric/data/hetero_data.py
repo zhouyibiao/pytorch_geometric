@@ -69,7 +69,7 @@ class HeteroData(BaseData, FeatureStore, GraphStore):
 
         # PyTorch tensor functionality:
         data = data.pin_memory()
-        data = data.to('cuda:0', non_blocking=True)
+        data = data.to('musa:0', non_blocking=True)
 
     Note that there exists multiple ways to create a heterogeneous graph data,
     *e.g.*:

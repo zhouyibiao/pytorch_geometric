@@ -11,21 +11,21 @@ from torch_geometric.typing import WITH_IPEX
 
 class DeviceHelper:
     def __init__(self, device: Optional[torch.device] = None):
-        with_cuda = torch.cuda.is_available()
+        with_musa = hasattr(torch, 'musa') and torch.musa.is_available()
         with_xpu = torch.xpu.is_available() if WITH_IPEX else False
 
         if device is None:
-            if with_cuda:
-                device = 'cuda'
+            if with_musa:
+                device = 'musa'
             elif with_xpu:
                 device = 'xpu'
             else:
                 device = 'cpu'
 
         self.device = torch.device(device)
-        self.is_gpu = self.device.type in ['cuda', 'xpu']
+        self.is_gpu = self.device.type in ['musa', 'xpu']
 
-        if ((self.device.type == 'cuda' and not with_cuda)
+        if ((self.device.type == 'musa' and not with_musa)
                 or (self.device.type == 'xpu' and not with_xpu)):
             warnings.warn(f"Requested device '{self.device.type}' is not "
                           f"available, falling back to CPU")

@@ -62,7 +62,7 @@ class BaseStorage(MutableMapping):
     # 4. It allows iterating over only a subset of keys, e.g.:
     #    `storage.values('x', 'y')` or `storage.items('x', 'y')
     # 5. It adds additional PyTorch Tensor functionality, e.g.:
-    #    `storage.cpu()`, `storage.cuda()` or `storage.share_memory_()`.
+    #    `storage.cpu()`, `storage.musa()` or `storage.share_memory_()`.
     def __init__(
         self,
         _mapping: Optional[Dict[str, Any]] = None,
@@ -251,16 +251,16 @@ class BaseStorage(MutableMapping):
         """
         return self.apply(lambda x: x.cpu(), *args)
 
-    def cuda(
+    def musa(
         self,
         device: Optional[Union[int, str]] = None,
         *args: str,
         non_blocking: bool = False,
     ) -> Self:  # pragma: no cover
-        r"""Copies attributes to CUDA memory, either for all attributes or only
+        r"""Copies attributes to MUSA memory, either for all attributes or only
         the ones given in :obj:`*args`.
         """
-        return self.apply(lambda x: x.cuda(device, non_blocking=non_blocking),
+        return self.apply(lambda x: x.musa(device, non_blocking=non_blocking),
                           *args)
 
     def pin_memory(self, *args: str) -> Self:
@@ -295,7 +295,7 @@ class BaseStorage(MutableMapping):
         return self.apply(
             lambda x: x.requires_grad_(requires_grad=requires_grad), *args)
 
-    def record_stream(self, stream: torch.cuda.Stream, *args: str) -> Self:
+    def record_stream(self, stream: torch.musa.Stream, *args: str) -> Self:
         r"""Ensures that the tensor memory is not reused for another tensor
         until all current work queued on :obj:`stream` has been completed,
         either for all attributes or only the ones given in :obj:`*args`.

@@ -51,7 +51,7 @@ def map_index(
 
             import rmm
             rmm.reinitialize(pool_allocator=True)
-            torch.cuda.memory.change_current_allocator(rmm.rmm_torch_allocator)
+            torch.musa.memory.change_current_allocator(rmm.rmm_torch_allocator)
     """
     if src.is_floating_point():
         raise ValueError(f"Expected 'src' to be an index (got '{src.dtype}')")
@@ -69,7 +69,7 @@ def map_index(
     # operation by creating a helper vector to perform the mapping.
     # NOTE This will potentially consumes a large chunk of memory
     # (max_index=10 million => ~75MB), so we cap it at a reasonable size:
-    THRESHOLD = 40_000_000 if src.is_cuda else 10_000_000
+    THRESHOLD = 40_000_000 if src.is_musa else 10_000_000
     if max_index <= THRESHOLD:
         if inclusive:
             assoc = src.new_empty(max_index + 1)  # type: ignore
@@ -86,8 +86,9 @@ def map_index(
             return out[mask], mask
 
     WITH_CUDF = False
-    if src.is_cuda:
+    if src.is_musa:
         try:
+            warnings.warn("cudf is not available on MUSA platform")
             import cudf
             WITH_CUDF = True
         except ImportError:

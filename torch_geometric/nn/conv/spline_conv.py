@@ -129,7 +129,7 @@ class SplineConv(MessagePassing):
         if isinstance(x, Tensor):
             x = (x, x)
 
-        if not x[0].is_cuda:
+        if not x[0].is_musa:
             warnings.warn(
                 'We do not recommend using the non-optimized CPU version of '
                 '`SplineConv`. If possible, please move your data to GPU.')

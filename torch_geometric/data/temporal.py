@@ -69,7 +69,7 @@ class TemporalData(BaseData):
 
         # PyTorch tensor functionality:
         events = events.pin_memory()
-        events = events.to('cuda:0', non_blocking=True)
+        events = events.to('musa:0', non_blocking=True)
 
     Args:
         src (torch.Tensor, optional): A list of source nodes for the events

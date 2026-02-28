@@ -69,7 +69,7 @@ def train(
         default_root_dir=cfg.out_dir,
         max_epochs=cfg.optim.max_epoch,
         accelerator=cfg.accelerator,
-        devices='auto' if not torch.cuda.is_available() else cfg.devices,
+        devices='auto' if not (hasattr(torch, 'musa') and torch.musa.is_available()) else cfg.devices,
     )
 
     trainer.fit(model, datamodule=datamodule)

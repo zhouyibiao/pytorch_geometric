@@ -36,7 +36,7 @@ def spmm(
             return other.new_zeros(src.size(0), other.size(1))
 
         if (torch_geometric.typing.WITH_PT20 and other.dim() == 2
-                and not src.is_cuda() and not src.requires_grad()):
+                and not src.is_musa() and not src.requires_grad()):
             # Use optimized PyTorch `torch.sparse.mm` path:
             csr = src.to_torch_sparse_csr_tensor().to(other.dtype)
             return torch.sparse.mm(csr, other, reduce)
@@ -47,10 +47,10 @@ def spmm(
                          "'torch.sparse.Tensor'")
 
     # `torch.sparse.mm` only supports reductions on CPU for PyTorch>=2.0.
-    # This will currently throw on error for CUDA tensors.
+    # This will currently throw on error for MUSA tensors.
     if torch_geometric.typing.WITH_PT20:
 
-        if src.is_cuda and (reduce == 'min' or reduce == 'max'):
+        if src.is_musa and (reduce == 'min' or reduce == 'max'):
             raise NotImplementedError(f"`{reduce}` reduction is not yet "
                                       f"supported for 'torch.sparse.Tensor' "
                                       f"on device '{src.device}'")
@@ -75,7 +75,7 @@ def spmm(
             return torch.sparse.mm(src, other)
 
         # Use the default code path with custom reduction (works on CPU):
-        if src.layout == torch.sparse_csr and not src.is_cuda:
+        if src.layout == torch.sparse_csr and not src.is_musa:
             return torch.sparse.mm(src, other, reduce)
 
         # Simulate `mean` reduction by dividing by degree:

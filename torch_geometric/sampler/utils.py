@@ -81,7 +81,7 @@ def to_csc(
     row = row.to(device)
     perm = perm.to(device) if perm is not None else None
 
-    if not colptr.is_cuda and share_memory:
+    if not colptr.is_musa and share_memory:
         colptr.share_memory_()
         row.share_memory_()
         if perm is not None:

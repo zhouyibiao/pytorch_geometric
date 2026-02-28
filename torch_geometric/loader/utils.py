@@ -407,7 +407,7 @@ def get_edge_label_index(
 
 def infer_filter_per_worker(data: Any) -> bool:
     out = True
-    if isinstance(data, (Data, HeteroData)) and data.is_cuda:
+    if isinstance(data, (Data, HeteroData)) and data.is_musa:
         out = False
     logging.debug(f"Inferred 'filter_per_worker={out}' option for feature "
                   f"fetching routines of the data loader")

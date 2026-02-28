@@ -85,14 +85,14 @@ def benchmark(
             args = inputs() if callable(inputs) else inputs
             args = require_grad(args, backward)
 
-            if torch.cuda.is_available():
-                torch.cuda.synchronize()
+            if hasattr(torch, 'musa') and torch.musa.is_available():
+                torch.musa.synchronize()
             t_start = time.perf_counter()
 
             out = func(*args)
 
-            if torch.cuda.is_available():
-                torch.cuda.synchronize()
+            if hasattr(torch, 'musa') and torch.musa.is_available():
+                torch.musa.synchronize()
             if i >= num_warmups:
                 t_forward += time.perf_counter() - t_start
 
@@ -108,8 +108,8 @@ def benchmark(
 
                 out.backward(out_grad)
 
-                if torch.cuda.is_available():
-                    torch.cuda.synchronize()
+                if hasattr(torch, 'musa') and torch.musa.is_available():
+                    torch.musa.synchronize()
                 if i >= num_warmups:
                     t_backward += time.perf_counter() - t_start
 

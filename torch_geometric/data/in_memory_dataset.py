@@ -333,15 +333,15 @@ class InMemoryDataset(Dataset, ABC):
         r"""Moves the dataset to CPU memory."""
         return self.to(torch.device('cpu'))
 
-    def cuda(
+    def musa(
         self,
         device: Optional[Union[int, str]] = None,
     ) -> 'InMemoryDataset':
-        r"""Moves the dataset toto CUDA memory."""
+        r"""Moves the dataset toto MUSA memory."""
         if isinstance(device, int):
-            device = f'cuda:{int}'
+            device = f'musa:{int}'
         elif device is None:
-            device = 'cuda'
+            device = 'musa'
         return self.to(device)
 
 
